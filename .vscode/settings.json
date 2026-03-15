@@ -1,6 +1,17 @@
 {
   "python.defaultInterpreterPath": ".venv/bin/python",
   "python.terminal.activateEnvironment": true,
+  "editor.fontFamily": "'JetBrainsMono Nerd Font', monospace",
+  "editor.fontSize": 16,
+  "editor.fontLigatures": true,
+  "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font Mono', monospace",
+  "terminal.integrated.fontSize": 15,
+  "workbench.fontAliasing": "antialiased",
+  "markdown.preview.fontSize": 18,
+  "markdown.preview.lineHeight": 1.8,
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
   "[python]": {
     "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,

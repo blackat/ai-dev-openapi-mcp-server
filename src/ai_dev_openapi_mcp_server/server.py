@@ -23,7 +23,7 @@ class OpenAPIMCPServer:
 
     def __init__(self, config: dict[str, Any]):
         self.config = config
-        self.mcp = Server("ai-dev-openapi-mcp-server")
+        self.mcp = Server("openapi-mcp-server")
         self._tools: list[dict[str, Any]] = []
         self._tool_index: dict[str, dict[str, Any]] = {}
         self._api_client: APIClient | None = None
@@ -38,7 +38,11 @@ class OpenAPIMCPServer:
     # ------------------------------------------------------------------
 
     async def startup(self) -> None:
-        """Load spec, build tool index, create HTTP client and LLM backend."""
+        """Load spec, build tool index and create HTTP client.
+
+        Does NOT touch the LLM — in serve mode the MCP client is the LLM.
+        Call startup_llm() explicitly only in chat mode.
+        """
         spec_source: str = self.config["openapi_spec"]
         print(f"[openapi-mcp] Loading spec from {spec_source!r} …")
         spec = load_spec(spec_source)
@@ -62,6 +66,12 @@ class OpenAPIMCPServer:
             base_url=base_url,
             api_key=self.config.get("api_key"),
         )
+        # LLM backend is NOT started here.
+        # In serve mode the MCP client (Cursor etc.) is the LLM.
+        # Call startup_llm() explicitly only when running chat mode.
+
+    def startup_llm(self) -> None:
+        """Initialise the LLM backend. Called only in chat mode."""
         self._llm = create_backend(self.config)
         backend_name = self.config.get("llm_backend", "ollama")
         print(f"[openapi-mcp] LLM backend: {backend_name}")

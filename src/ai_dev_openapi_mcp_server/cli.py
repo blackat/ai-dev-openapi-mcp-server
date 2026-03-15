@@ -37,10 +37,12 @@ def _build_config(
     return {
         "openapi_spec": spec or os.environ.get("OPENAPI_SPEC", ""),
         "llm_backend": llm or os.environ.get("LLM_BACKEND", "ollama"),
-        "ollama_base_url": ollama_url or os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
+        "ollama_base_url": ollama_url
+        or os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434"),
         "ollama_model": ollama_model or os.environ.get("OLLAMA_MODEL", "llama3.2"),
         "gemini_api_key": gemini_key or os.environ.get("GEMINI_API_KEY"),
-        "gemini_model": gemini_model or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash"),
+        "gemini_model": gemini_model
+        or os.environ.get("GEMINI_MODEL", "gemini-1.5-flash"),
         "api_base_url": api_base or os.environ.get("API_BASE_URL", ""),
         "api_key": api_key or os.environ.get("API_KEY"),
         "mcp_host": host,
@@ -50,33 +52,53 @@ def _build_config(
 
 @app.command()
 def serve(
-    spec: str = typer.Option("", "--spec", "-s", help="URL or path to the OpenAPI spec"),
-    llm: str = typer.Option("ollama", "--llm", help="LLM backend: ollama or gemini"),
-    ollama_url: str = typer.Option("http://localhost:11434", "--ollama-url"),
-    ollama_model: str = typer.Option("llama3.2", "--ollama-model"),
-    gemini_key: Optional[str] = typer.Option(None, "--gemini-key", envvar="GEMINI_API_KEY"),
-    gemini_model: str = typer.Option("gemini-1.5-flash", "--gemini-model"),
-    api_base: Optional[str] = typer.Option(None, "--api-base", help="Override API base URL"),
-    api_key: Optional[str] = typer.Option(None, "--api-key", help="Bearer token for target API"),
+    spec: str = typer.Option(
+        "", "--spec", "-s", help="URL or path to the OpenAPI spec"
+    ),
+    api_base: Optional[str] = typer.Option(
+        None, "--api-base", help="Override API base URL"
+    ),
+    api_key: Optional[str] = typer.Option(
+        None, "--api-key", help="Bearer token for target API"
+    ),
     host: str = typer.Option("127.0.0.1", "--host"),
     port: int = typer.Option(8765, "--port"),
 ) -> None:
-    """Start the MCP server (stdio transport, compatible with Claude Desktop)."""
+    """Start the MCP server (stdio transport) for use with Cursor, Claude Desktop, etc.
+
+    The LLM that reasons over tools is the MCP CLIENT (e.g. Cursor).
+    This server only exposes tools and executes HTTP calls — it has no LLM of its own.
+    To chat via a local LLM instead, use: openapi-mcp chat
+    """
     from mcp.server.stdio import stdio_server
 
-    config = _build_config(
-        spec, llm, ollama_url, ollama_model, gemini_key,
-        gemini_model, api_base, api_key, host, port,
-    )
+    config = {
+        "openapi_spec": spec or os.environ.get("OPENAPI_SPEC", ""),
+        "api_base_url": api_base or os.environ.get("API_BASE_URL", ""),
+        "api_key": api_key or os.environ.get("API_KEY"),
+        "mcp_host": host,
+        "mcp_port": port,
+    }
 
     if not config["openapi_spec"]:
-        console.print("[red]Error:[/red] --spec is required (or set OPENAPI_SPEC in .env)")
+        console.print(
+            "[red]Error:[/red] --spec is required (or set OPENAPI_SPEC in .env)"
+        )
         raise typer.Exit(1)
 
-    _print_banner(config)
+    console.print(
+        Panel(
+            f"[bold]OpenAPI MCP Server[/bold]\n"
+            f"Spec : [cyan]{config['openapi_spec']}[/cyan]\n"
+            f"Mode : [green]serve[/green] — waiting for MCP client (Cursor, Claude Desktop …)\n"
+            f"LLM  : [dim]provided by the client, not this server[/dim]",
+            title="[bold blue]Starting[/bold blue]",
+        )
+    )
 
     async def run() -> None:
         from .server import OpenAPIMCPServer
+
         srv = OpenAPIMCPServer(config)
         await srv.startup()
         async with stdio_server() as (read_stream, write_stream):
@@ -89,33 +111,53 @@ def serve(
 
 @app.command()
 def chat(
-    spec: str = typer.Option("", "--spec", "-s", help="URL or path to the OpenAPI spec"),
+    spec: str = typer.Option(
+        "", "--spec", "-s", help="URL or path to the OpenAPI spec"
+    ),
     llm: str = typer.Option("ollama", "--llm", help="LLM backend: ollama or gemini"),
     ollama_url: str = typer.Option("http://localhost:11434", "--ollama-url"),
     ollama_model: str = typer.Option("llama3.2", "--ollama-model"),
-    gemini_key: Optional[str] = typer.Option(None, "--gemini-key", envvar="GEMINI_API_KEY"),
+    gemini_key: Optional[str] = typer.Option(
+        None, "--gemini-key", envvar="GEMINI_API_KEY"
+    ),
     gemini_model: str = typer.Option("gemini-1.5-flash", "--gemini-model"),
     api_base: Optional[str] = typer.Option(None, "--api-base"),
     api_key: Optional[str] = typer.Option(None, "--api-key"),
 ) -> None:
     """Interactive chat loop: talk to the API via natural language."""
     config = _build_config(
-        spec, llm, ollama_url, ollama_model, gemini_key,
-        gemini_model, api_base, api_key, "127.0.0.1", 8765,
+        spec,
+        llm,
+        ollama_url,
+        ollama_model,
+        gemini_key,
+        gemini_model,
+        api_base,
+        api_key,
+        "127.0.0.1",
+        8765,
     )
 
     if not config["openapi_spec"]:
-        console.print("[red]Error:[/red] --spec is required (or set OPENAPI_SPEC in .env)")
+        console.print(
+            "[red]Error:[/red] --spec is required (or set OPENAPI_SPEC in .env)"
+        )
         raise typer.Exit(1)
 
     _print_banner(config)
 
     async def run() -> None:
         from .server import OpenAPIMCPServer
+
         srv = OpenAPIMCPServer(config)
         await srv.startup()
+        srv.startup_llm()  # only chat mode needs an LLM
 
-        console.print(Panel("[bold green]Chat started[/bold green] — type [bold]quit[/bold] to exit"))
+        console.print(
+            Panel(
+                "[bold green]Chat started[/bold green] — type [bold]quit[/bold] to exit"
+            )
+        )
         history: list[dict] = []
 
         while True:
@@ -166,7 +208,9 @@ def list_tools(
 def _print_banner(config: dict) -> None:
     backend = config["llm_backend"]
     if backend == "ollama":
-        llm_info = f"Ollama  model={config['ollama_model']}  url={config['ollama_base_url']}"
+        llm_info = (
+            f"Ollama  model={config['ollama_model']}  url={config['ollama_base_url']}"
+        )
     else:
         llm_info = f"Gemini  model={config['gemini_model']}"
 
