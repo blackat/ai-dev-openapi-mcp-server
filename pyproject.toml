@@ -1,0 +1,33 @@
+[project]
+name = "ai-dev-openapi-mcp-server"
+version = "0.1.0"
+description = "MCP server that wraps any REST API described by an OpenAPI spec"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.0.0",
+    "httpx>=0.27.0",
+    "pyyaml>=6.0",
+    "jsonref>=1.1.0",
+    "google-generativeai>=0.8.0",
+    "ollama>=0.3.0",
+    "python-dotenv>=1.0.0",
+    "rich>=13.0.0",
+    "typer>=0.12.0",
+]
+
+[project.scripts]
+openapi-mcp = "ai-dev-openapi_mcp_server.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ai-dev-openapi_mcp_server"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]

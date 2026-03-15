@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "openapi-petstore": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "/path/to/ai-dev-openapi-mcp-server",
+        "openapi-mcp",
+        "serve",
+        "--spec", "https://petstore3.swagger.io/api/v3/openapi.json",
+        "--llm", "ollama",
+        "--ollama-model", "llama3.2"
+      ]
+    }
+  }
+}
