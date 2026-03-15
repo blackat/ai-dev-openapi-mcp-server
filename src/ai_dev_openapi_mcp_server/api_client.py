@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 from urllib.parse import urlencode
 
@@ -13,12 +12,17 @@ class APIClient:
     """Execute HTTP calls against the target REST API."""
 
     def __init__(self, base_url: str, api_key: str | None = None):
-        headers: dict[str, str] = {"Content-Type": "application/json", "Accept": "application/json"}
+        headers: dict[str, str] = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 
         self._base_url = base_url.rstrip("/")
-        self._client = httpx.AsyncClient(headers=headers, timeout=30, follow_redirects=True)
+        self._client = httpx.AsyncClient(
+            headers=headers, timeout=30, follow_redirects=True
+        )
 
     async def call(
         self,

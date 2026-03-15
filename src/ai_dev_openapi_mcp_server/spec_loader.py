@@ -41,12 +41,12 @@ def extract_tools(spec: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract each API operation as a tool definition.
 
     Returns a list of dicts with keys:
-        name        – operationId (slugified)
-        description – summary + description from the spec
-        method      – HTTP method (GET, POST, …)
-        path        – URL path template
-        parameters  – list of OpenAPI parameter objects
-        request_body – OpenAPI requestBody object (or None)
+        name         - operationId (slugified)
+        description  - summary + description from the spec
+        method       - HTTP method (GET, POST, …)
+        path         - URL path template
+        parameters   - list of OpenAPI parameter objects
+        request_body - OpenAPI requestBody object (or None)
     """
     tools: list[dict[str, Any]] = []
     paths: dict[str, Any] = spec.get("paths", {})
@@ -83,4 +83,5 @@ def _make_op_id(method: str, path: str) -> str:
 
 def _slug(name: str) -> str:
     import re
+
     return re.sub(r"[^a-zA-Z0-9_]", "_", name)[:64]
