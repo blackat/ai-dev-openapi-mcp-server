@@ -15,7 +15,7 @@ from mcp.types import (
 
 from .api_client import APIClient
 from .llm_backends import LLMBackend, create_backend
-from .spec_loader import extract_tools, load_spec
+from .spec_loader import extract_tools, load_spec, resolve_base_url
 
 
 class OpenAPIMCPServer:
@@ -48,15 +48,28 @@ class OpenAPIMCPServer:
         spec = load_spec(spec_source)
 
         # Determine base URL
-        base_url: str = self.config.get("api_base_url", "")
+        base_url: str = self.config.get("api_base_url", "").strip()
+
+        if base_url and not (
+            base_url.startswith("http://") or base_url.startswith("https://")
+        ):
+            raise ValueError(
+                f"API_BASE_URL {base_url!r} is missing the scheme. "
+                "Use 'https://...' or 'http://...'"
+            )
+
         if not base_url:
-            servers = spec.get("servers", [])
-            base_url = servers[0]["url"] if servers else ""
+            spec_source: str = self.config["openapi_spec"]
+            base_url = resolve_base_url(spec, spec_source)
+
         if not base_url:
             raise ValueError(
-                "Could not determine API base URL. "
-                "Set API_BASE_URL or ensure the spec has a 'servers' entry."
+                "Could not determine a valid API base URL.\n"
+                "The spec's servers[0].url is missing or relative with no origin to resolve against.\n"
+                "Fix: pass --api-base https://your-api.com or set API_BASE_URL in .env"
             )
+
+        print(f"[openapi-mcp] Base URL: {base_url}")
 
         self._tools = extract_tools(spec)
         self._tool_index = {t["name"]: t for t in self._tools}

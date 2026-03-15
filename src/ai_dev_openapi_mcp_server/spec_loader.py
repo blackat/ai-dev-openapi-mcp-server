@@ -41,12 +41,12 @@ def extract_tools(spec: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract each API operation as a tool definition.
 
     Returns a list of dicts with keys:
-        name         - operationId (slugified)
-        description  - summary + description from the spec
-        method       - HTTP method (GET, POST, …)
-        path         - URL path template
-        parameters   - list of OpenAPI parameter objects
-        request_body - OpenAPI requestBody object (or None)
+        name        – operationId (slugified)
+        description – summary + description from the spec
+        method      – HTTP method (GET, POST, …)
+        path        – URL path template
+        parameters  – list of OpenAPI parameter objects
+        request_body – OpenAPI requestBody object (or None)
     """
     tools: list[dict[str, Any]] = []
     paths: dict[str, Any] = spec.get("paths", {})
@@ -85,3 +85,36 @@ def _slug(name: str) -> str:
     import re
 
     return re.sub(r"[^a-zA-Z0-9_]", "_", name)[:64]
+
+
+def resolve_base_url(spec: dict[str, Any], spec_source: str) -> str:
+    """Extract a fully-qualified base URL from the spec's servers list.
+
+    OpenAPI specs sometimes list a relative URL like '/api/v3' instead of
+    'https://host/api/v3'.  When the spec was fetched from a URL we can
+    resolve the relative path against that origin.  If resolution is not
+    possible we return an empty string and let the caller raise a clear error.
+    """
+    from urllib.parse import urlparse, urlunparse
+
+    servers: list[dict[str, Any]] = spec.get("servers", [])
+    if not servers:
+        return ""
+
+    url: str = servers[0].get("url", "").strip()
+    if not url:
+        return ""
+
+    # Already absolute — nothing to do
+    if url.startswith("http://") or url.startswith("https://"):
+        return url.rstrip("/")
+
+    # Relative URL — try to resolve against the spec source origin
+    if spec_source.startswith("http://") or spec_source.startswith("https://"):
+        parsed = urlparse(spec_source)
+        origin = urlunparse((parsed.scheme, parsed.netloc, "", "", "", ""))
+        resolved = origin + ("/" if not url.startswith("/") else "") + url
+        return resolved.rstrip("/")
+
+    # Relative URL but spec came from a local file — cannot resolve
+    return ""
